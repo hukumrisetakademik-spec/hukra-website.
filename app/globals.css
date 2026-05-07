@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #1B3A6B;
+  --navy-dark: #0d2347;
+  --navy-light: #2a4f8f;
+  --gold: #C9A84C;
+  --gold-light: #e8c97a;
+  --gold-dark: #a07a2a;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: #F8F9FA;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 { font-family: 'Playfair Display', serif; }
+
+.badge-berita { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #1B3A6B; color: #C9A84C; letter-spacing: 0.05em; text-transform: uppercase; font-family: 'DM Sans', sans-serif; }
+.badge-opini { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #C9A84C; color: #1B3A6B; letter-spacing: 0.05em; text-transform: uppercase; font-family: 'DM Sans', sans-serif; }
+
+.section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; color: #1B3A6B; padding-left: 12px; border-left: 3px solid #C9A84C; font-family: 'DM Sans', sans-serif; }
+
+.ProseMirror { outline: none; min-height: 400px; font-family: 'DM Sans', sans-serif; font-size: 1rem; line-height: 1.8; }
+.ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #ADB5BD; pointer-events: none; height: 0; }
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 { font-family: 'Playfair Display', serif; margin-top: 1.5em; margin-bottom: 0.5em; color: #0d2347; }
+.ProseMirror h2 { font-size: 1.5rem; }
+.ProseMirror h3 { font-size: 1.25rem; }
+.ProseMirror p { margin-bottom: 1em; }
+.ProseMirror strong { font-weight: 600; }
+.ProseMirror ul { list-style: disc; padding-left: 1.5em; margin-bottom: 1em; }
+.ProseMirror ol { list-style: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+.ProseMirror blockquote { border-left: 4px solid #C9A84C; padding-left: 1.25em; margin: 1.5em 0; color: #6C757D; font-style: italic; }
+.ProseMirror img { max-width: 100%; height: auto; border-radius: 8px; margin: 1em 0; }
+.ProseMirror a { color: #1B3A6B; text-decoration: underline; }
+
+.article-content { font-family: 'DM Sans', sans-serif; font-size: 1.0625rem; line-height: 1.85; }
+.article-content h2, .article-content h3 { font-family: 'Playfair Display', serif; color: #0d2347; margin-top: 1.75em; margin-bottom: 0.5em; }
+.article-content h2 { font-size: 1.5rem; }
+.article-content p { margin-bottom: 1.25em; }
+.article-content blockquote { border-left: 4px solid #C9A84C; padding: 0.75em 1.25em; margin: 1.75em 0; background: rgba(201,168,76,0.06); font-style: italic; font-family: 'Playfair Display', serif; }
+.article-content ul { list-style: disc; padding-left: 1.5em; margin-bottom: 1em; }
+.article-content ol { list-style: decimal; padding-left: 1.5em; margin-bottom: 1em; }
+.article-content img { max-width: 100%; border-radius: 10px; margin: 1.5em 0; }
+
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+
+@keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+.skeleton { background: linear-gradient(90deg, #F1F3F5 25%, #E9ECEF 50%, #F1F3F5 75%); background-size: 1000px 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
