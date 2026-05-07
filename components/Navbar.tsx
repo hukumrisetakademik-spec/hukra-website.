@@ -64,7 +64,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
-            <img src="/logo-hukra.jpg" alt="HUKRA Logo" className="w-10 h-10 rounded-lg object-cover" style={{ border: '2px solid #C9A84C' }} />
+            <img src="/logo-hukra.jpg" alt="HUKRA Logo" className="w-9 h-9 rounded-lg object-cover object-top" style={{ border: '2px solid #C9A84C' }} />
             <div>
               <div style={{ color: 'white', fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 700, letterSpacing: 3 }}>HUKRA</div>
               <div style={{ color: '#C9A84C', fontSize: 8, letterSpacing: 2, fontWeight: 500 }}>HUKUM DAN RISET AKADEMIKA</div>
