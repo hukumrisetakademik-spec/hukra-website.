@@ -9,35 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        navy: {
-          DEFAULT: '#1B3A6B',
-          dark: '#0d2347',
-          light: '#2a4f8f',
-          50: '#EFF4FF',
-          100: '#C3D3F0',
-        },
-        gold: {
-          DEFAULT: '#C9A84C',
-          light: '#e8c97a',
-          dark: '#a07a2a',
-          50: '#FDF8EC',
-          100: '#F5E4B4',
-        },
+        navy: { DEFAULT: '#1B3A6B', dark: '#0d2347', light: '#2a4f8f' },
+        gold: { DEFAULT: '#C9A84C', light: '#e8c97a', dark: '#a07a2a' },
       },
       fontFamily: {
-        serif: ['Playfair Display', 'Georgia', 'serif'],
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-      },
-      typography: {
-        DEFAULT: {
-          css: {
-            fontFamily: 'DM Sans, sans-serif',
-          },
-        },
+        serif: ['var(--font-playfair)', 'Playfair Display', 'Georgia', 'serif'],
+        sans: ['var(--font-dm-sans)', 'DM Sans', 'system-ui', 'sans-serif'],
       },
     },
   },
   plugins: [],
 }
-
 export default config
