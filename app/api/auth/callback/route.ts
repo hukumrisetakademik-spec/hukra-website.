@@ -6,6 +6,9 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const next = requestUrl.searchParams.get('next') || '/'
+  
+  // Always redirect to the production URL, not localhost
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin
 
   if (code) {
     const cookieStore = await cookies()
@@ -26,5 +29,5 @@ export async function GET(request: NextRequest) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(`${requestUrl.origin}${next}`)
+  return NextResponse.redirect(`${siteUrl}${next}`)
 }
