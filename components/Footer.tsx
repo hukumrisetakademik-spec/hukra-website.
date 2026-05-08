@@ -2,78 +2,68 @@ import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer style={{ background: 'linear-gradient(135deg, #0d2347 0%, #1B3A6B 100%)' }} className="mt-16">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+    <footer style={{ background: 'linear-gradient(135deg, #0d2347, #1B3A6B)', marginTop: 40 }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 32, marginBottom: 32 }}>
           {/* Brand */}
-          <div className="md:col-span-1">
-            <div className="flex items-center gap-3 mb-4">
-              <img src="/logo-hukra.jpg" alt="HUKRA" className="w-12 h-12 rounded-xl object-cover" style={{ border: '2px solid #C9A84C' }} />
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <img src="/logo-hukra.jpg" alt="HUKRA" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', border: '1.5px solid #C9A84C' }} />
               <div>
-                <div style={{ color: 'white', fontFamily: 'Playfair Display, serif', fontSize: 20, fontWeight: 700, letterSpacing: 3 }}>HUKRA</div>
-                <div style={{ color: '#C9A84C', fontSize: 8, letterSpacing: 2 }}>HUKUM DAN RISET AKADEMIKA</div>
+                <div style={{ color: 'white', fontFamily: 'Playfair Display, serif', fontSize: 16, fontWeight: 700, letterSpacing: 2 }}>HUKRA</div>
+                <div style={{ color: '#C9A84C', fontSize: 7, letterSpacing: 2 }}>HUKUM DAN RISET AKADEMIKA</div>
               </div>
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Platform berita dan opini hukum Indonesia. Wadah para akademisi, praktisi, dan mahasiswa hukum UIN Palangka Raya.
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.7 }}>
+              Platform berita dan opini hukum dari mahasiswa Fakultas Syariah UIN Palangka Raya. Didirikan 21 April 2026.
             </p>
           </div>
 
           {/* Kategori */}
           <div>
-            <h4 className="text-sm font-semibold mb-4" style={{ color: '#C9A84C', letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'DM Sans, sans-serif' }}>Kategori</h4>
-            <ul className="space-y-2">
-              {['Hukum Pidana', 'Hukum Perdata', 'Konstitusi', 'HAM', 'Internasional', 'Akademik'].map(cat => (
-                <li key={cat}>
-                  <Link href={`/kategori/${cat.toLowerCase().replace(/ /g, '-')}`} className="text-sm transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.5)' }}>{cat}</Link>
-                </li>
-              ))}
-            </ul>
+            <h4 style={{ color: '#C9A84C', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16, fontFamily: 'DM Sans, sans-serif' }}>Kategori</h4>
+            {['Hukum Pidana', 'Hukum Perdata', 'Konstitusi', 'HAM', 'Akademik'].map(cat => (
+              <div key={cat} style={{ marginBottom: 8 }}>
+                <Link href={`/kategori/${cat.toLowerCase().replace(/ /g, '-')}`} style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'none' }}>{cat}</Link>
+              </div>
+            ))}
           </div>
 
           {/* Platform */}
           <div>
-            <h4 className="text-sm font-semibold mb-4" style={{ color: '#C9A84C', letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'DM Sans, sans-serif' }}>Platform</h4>
-            <ul className="space-y-2">
-              {[
-                { name: 'Tentang Kami', href: '/tentang' },
-                { name: 'Panduan Menulis', href: '/panduan' },
-                { name: 'Kebijakan', href: '/kebijakan' },
-                { name: 'Kontak', href: '/kontak' },
-              ].map(item => (
-                <li key={item.name}>
-                  <Link href={item.href} className="text-sm transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.5)' }}>{item.name}</Link>
-                </li>
-              ))}
-            </ul>
+            <h4 style={{ color: '#C9A84C', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16, fontFamily: 'DM Sans, sans-serif' }}>Platform</h4>
+            {[
+              { name: 'Tentang Kami', href: '/tentang' },
+              { name: 'Berita', href: '/berita' },
+              { name: 'Opini', href: '/opini' },
+              { name: 'Tulis Artikel', href: '/tulis' },
+            ].map(item => (
+              <div key={item.name} style={{ marginBottom: 8 }}>
+                <Link href={item.href} style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'none' }}>{item.name}</Link>
+              </div>
+            ))}
           </div>
 
           {/* Tim */}
           <div>
-            <h4 className="text-sm font-semibold mb-4" style={{ color: '#C9A84C', letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'DM Sans, sans-serif' }}>Tim Kami</h4>
-            <ul className="space-y-2">
-              {[
-                { name: 'Ahmidi', role: 'Ketua Tim' },
-                { name: 'M. Rahman', role: 'Reviewer' },
-                { name: 'M. Ladit', role: 'Editor' },
-                { name: 'Anharudin Ali Fajri', role: 'Media Publikasi' },
-              ].map(m => (
-                <li key={m.name} className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.8)' }}>{m.name}</span>
-                  <span className="text-xs ml-1">— {m.role}</span>
-                </li>
-              ))}
-            </ul>
+            <h4 style={{ color: '#C9A84C', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16, fontFamily: 'DM Sans, sans-serif' }}>Tim Kami</h4>
+            {[
+              { name: 'Ahmidi', role: 'Ketua' },
+              { name: 'M. Rahman', role: 'Reviewer' },
+              { name: 'M. Ladit', role: 'Editor' },
+              { name: 'A. Ali Fajri', role: 'Media' },
+            ].map(m => (
+              <div key={m.name} style={{ marginBottom: 8 }}>
+                <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>{m.name}</span>
+                <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginLeft: 6 }}>{m.role}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="border-t pt-6 flex flex-col md:flex-row items-center justify-between gap-3" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            © {new Date().getFullYear()} HUKRA — Hukum dan Riset Akademika. Didirikan 21 April 2026.
-          </p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
-            Fakultas Syariah UIN Palangka Raya
-          </p>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>© {new Date().getFullYear()} HUKRA — Hukum dan Riset Akademika</p>
+          <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: 12 }}>Fakultas Syariah UIN Palangka Raya</p>
         </div>
       </div>
     </footer>
