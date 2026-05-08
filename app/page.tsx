@@ -133,7 +133,7 @@ export default async function HomePage() {
               <div className="section-hd"><span className="section-title-el">🕐 Semua Terbaru</span></div>
               {latest.slice(0,5).map((a:any) => (
                 <Link key={a.id} href={`/artikel/${a.slug}`} className="news-row">
-                  <div style={{ ...{}, width:60, height:48 }} className="news-thumb" style={{ width:60, height:48, borderRadius:8, overflow:'hidden', flexShrink:0, background:'#EFF4FF', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>
+                  <div className="news-thumb" style={{ width:60, height:48, borderRadius:8, overflow:'hidden', flexShrink:0, background:'#EFF4FF', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>
                     {a.cover_image?<img src={a.cover_image} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>:'⚖️'}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
