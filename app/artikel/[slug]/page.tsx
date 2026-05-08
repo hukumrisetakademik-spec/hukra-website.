@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase'
 import Link from 'next/link'
 import LikeButton from '@/components/LikeButton'
+import ShareButton from '@/components/ShareButton'
 import CommentSection from '@/components/CommentSection'
 
 export default function ArticlePage() {
@@ -143,6 +144,7 @@ export default function ArticlePage() {
                 {/* Actions */}
                 <div style={{ display:'flex', alignItems:'center', gap:12, paddingTop:20, borderTop:'1px solid #F1F3F5', marginTop:20, flexWrap:'wrap' }}>
                   <LikeButton articleId={a.id} initialLikes={a.like_count || 0} />
+                  <ShareButton title={a.title} excerpt={a.excerpt} slug={a.slug} coverImage={a.cover_image} />
                   <span style={{ color:'#6C757D', fontSize:14 }}>💬 {a.comment_count || 0} Komentar</span>
                 </div>
               </div>
