@@ -2,224 +2,206 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { createBrowserClient, createRawClient } from '@/lib/supabase'
-import { Upload, X, Save, Send, Eye, AlertCircle } from 'lucide-react'
-import type { Category } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase'
 import slugify from 'slugify'
 
-const RichEditor = dynamic(() => import('@/components/RichEditor'), { ssr: false, loading: () => <div className="skeleton h-64 rounded-xl" /> })
+const RichEditor = dynamic(() => import('@/components/RichEditor'), { ssr: false, loading: () => (
+  <div style={{ border:'1.5px solid #E9ECEF', borderRadius:12, padding:40, textAlign:'center', color:'#ADB5BD' }}>Memuat editor...</div>
+)})
 
 export default function TulisPage() {
   const [user, setUser] = useState<any>(null)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [form, setForm] = useState({
-    title: '', excerpt: '', content: '', type: 'opini' as 'berita' | 'opini',
-    category_id: '', tags: '', cover_image: ''
-  })
+  const [categories, setCategories] = useState<any[]>([])
+  const [form, setForm] = useState({ title:'', excerpt:'', content:'', type:'opini' as any, category_id:'', tags:'' })
   const [coverPreview, setCoverPreview] = useState('')
+  const [coverUrl, setCoverUrl] = useState('')
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [savedId, setSavedId] = useState<string | null>(null)
+  const [savedId, setSavedId] = useState<string|null>(null)
+  const [activeTab, setActiveTab] = useState<'editor'|'settings'>('editor')
   const supabase = createBrowserClient()
-  const db = createRawClient()
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
+  const db = createBrowserClient()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { router.push('/auth/masuk'); return }
       setUser(data.user)
     })
-    supabase.from('categories').select('*').order('name').then(({ data }) => {
-      if (data) setCategories(data)
-    })
+    supabase.from('categories').select('*').order('name').then(({ data }) => setCategories(data || []))
   }, [])
 
   const uploadCover = async (file: File) => {
+    if (!user) return
     const ext = file.name.split('.').pop()
     const path = `${user.id}/${Date.now()}.${ext}`
-    const { error, data } = await supabase.storage.from('article-images').upload(path, file)
+    const { error } = await supabase.storage.from('article-images').upload(path, file)
     if (error) throw error
     const { data: { publicUrl } } = supabase.storage.from('article-images').getPublicUrl(path)
     return publicUrl
   }
 
-  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setCoverPreview(URL.createObjectURL(file))
     try {
       const url = await uploadCover(file)
-      setForm(f => ({ ...f, cover_image: url }))
-    } catch {
-      setError('Gagal upload gambar. Coba lagi.')
-    }
+      if (url) setCoverUrl(url)
+    } catch { setError('Gagal upload gambar.') }
   }
 
-  const generateSlug = (title: string) => slugify(title, { lower: true, strict: true, locale: 'id' }) + '-' + Date.now().toString(36)
+  const generateSlug = (title: string) => slugify(title, { lower:true, strict:true }) + '-' + Date.now().toString(36)
 
-  const saveDraft = async () => {
+  const save = async (status: 'draft'|'pending') => {
     if (!form.title.trim()) { setError('Judul wajib diisi.'); return }
-    setSaving(true)
-    setError('')
-    const slug = generateSlug(form.title)
-    const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean)
-    const payload = { ...form, slug, tags, author_id: user.id, status: 'draft' as const, excerpt: form.excerpt || form.content.replace(/<[^>]+>/g, '').slice(0, 200) }
+    if (status === 'pending' && (!form.content || form.content.replace(/<[^>]+>/g,'').length < 50)) { setError('Konten terlalu pendek.'); return }
     
-    let res
-    if (savedId) {
-      res = await db.from('articles').update(payload as any).eq('id', savedId).select().single()
-    } else {
-      res = await db.from('articles').insert(payload as any).select().single()
+    status === 'draft' ? setSaving(true) : setSubmitting(true)
+    setError('')
+    
+    const payload = {
+      title: form.title, excerpt: form.excerpt || form.content.replace(/<[^>]+>/g,'').slice(0,200),
+      content: form.content, type: form.type, category_id: form.category_id || null,
+      tags: form.tags.split(',').map(t=>t.trim()).filter(Boolean),
+      cover_image: coverUrl || null, author_id: user.id, status,
+      slug: generateSlug(form.title),
     }
-    if (res.error) { setError(res.error.message); setSaving(false); return }
-    setSavedId(res.data.id)
-    setSuccess('Draft tersimpan!')
-    setTimeout(() => setSuccess(''), 3000)
-    setSaving(false)
+
+    let res: any
+    if (savedId) {
+      res = await (db as any).from('articles').update(payload).eq('id', savedId).select().single()
+    } else {
+      res = await (db as any).from('articles').insert(payload).select().single()
+    }
+
+    if (res.error) { setError(res.error.message); setSaving(false); setSubmitting(false); return }
+    if (status === 'draft') { setSavedId(res.data.id); setSuccess('Draft tersimpan!'); setTimeout(()=>setSuccess(''),3000); setSaving(false) }
+    else { router.push('/dashboard?submitted=true') }
   }
 
-  const submitArticle = async () => {
-    if (!form.title.trim()) { setError('Judul wajib diisi.'); return }
-    if (!form.content || form.content.replace(/<[^>]+>/g, '').length < 100) { setError('Konten artikel terlalu pendek (min. 100 karakter).'); return }
-    setSubmitting(true)
-    setError('')
-    const slug = generateSlug(form.title)
-    const tags = form.tags.split(',').map(t => t.trim()).filter(Boolean)
-    const payload = { ...form, slug, tags, author_id: user.id, status: 'pending' as const, excerpt: form.excerpt || form.content.replace(/<[^>]+>/g, '').slice(0, 200) }
-    
-    let res
-    if (savedId) {
-      res = await db.from('articles').update({ ...payload, status: 'pending' } as any).eq('id', savedId).select().single()
-    } else {
-      res = await db.from('articles').insert(payload as any).select().single()
-    }
-    if (res.error) { setError(res.error.message); setSubmitting(false); return }
-    router.push('/dashboard?submitted=true')
+  const S = {
+    page: { background:'#F8F9FA', minHeight:'100vh' },
+    header: { background:'white', borderBottom:'1px solid #E9ECEF', padding:'16px 24px', position:'sticky' as const, top:0, zIndex:40 },
+    headerInner: { maxWidth:1100, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const },
+    title: { fontFamily:'Playfair Display,serif', color:'#0d2347', fontSize:20, fontWeight:700 },
+    subtitle: { color:'#ADB5BD', fontSize:13, marginTop:2 },
+    btnRow: { display:'flex', gap:10, flexWrap:'wrap' as const },
+    btnDraft: { padding:'8px 18px', borderRadius:9, border:'1.5px solid #E9ECEF', background:'white', color:'#343A40', fontSize:13, fontWeight:600, cursor:'pointer' },
+    btnSubmit: { padding:'8px 18px', borderRadius:9, background:'#1B3A6B', color:'white', fontSize:13, fontWeight:700, border:'none', cursor:'pointer' },
+    body: { maxWidth:1100, margin:'0 auto', padding:'24px 16px', display:'grid', gridTemplateColumns:'1fr 280px', gap:24 },
+    mainCard: { background:'white', borderRadius:16, padding:24, boxShadow:'0 2px 12px rgba(0,0,0,0.06)' },
+    sideCard: { background:'white', borderRadius:16, padding:20, boxShadow:'0 2px 12px rgba(0,0,0,0.06)', marginBottom:16 },
+    sideLabel: { fontSize:11, fontWeight:700, textTransform:'uppercase' as const, letterSpacing:'.12em', color:'#6C757D', marginBottom:12 },
+    input: { width:'100%', padding:'10px 14px', borderRadius:9, border:'1.5px solid #E9ECEF', fontSize:14, outline:'none', boxSizing:'border-box' as const },
+    select: { width:'100%', padding:'10px 14px', borderRadius:9, border:'1.5px solid #E9ECEF', fontSize:14, outline:'none', boxSizing:'border-box' as const, background:'white' },
+    typeBtn: (active: boolean, type: string) => ({ flex:1, padding:'9px', borderRadius:8, border:`1.5px solid ${active?(type==='opini'?'#C9A84C':'#1B3A6B'):'#E9ECEF'}`, background: active?(type==='opini'?'#C9A84C':'#1B3A6B'):'white', color: active?(type==='opini'?'#1B3A6B':'white'):'#6C757D', fontSize:13, fontWeight:700, cursor:'pointer' }),
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-8 py-8">
+    <div style={S.page}>
+      <style>{`@media(max-width:768px){.tulis-grid{grid-template-columns:1fr!important}.tulis-side{order:-1}}`}</style>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 style={{ fontFamily: 'Playfair Display, serif', color: '#0d2347', fontSize: 24 }} className="font-bold">Tulis Artikel</h1>
-          <p className="text-sm mt-1" style={{ color: '#6C757D' }}>Artikel kamu akan direview admin sebelum ditayangkan</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={saveDraft} disabled={saving} className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all disabled:opacity-50 hover:bg-gray-50" style={{ borderColor: '#E9ECEF', color: '#343A40' }}>
-            <Save size={14} />{saving ? 'Menyimpan...' : 'Simpan Draft'}
-          </button>
-          <button onClick={submitArticle} disabled={submitting} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50" style={{ background: '#1B3A6B', color: 'white' }}>
-            <Send size={14} />{submitting ? 'Mengirim...' : 'Kirim untuk Review'}
-          </button>
+      <div style={S.header}>
+        <div style={S.headerInner}>
+          <div>
+            <div style={S.title}>✍️ Tulis Berita/Opini</div>
+            <div style={S.subtitle}>Artikel akan direview admin sebelum ditayangkan</div>
+          </div>
+          <div style={S.btnRow}>
+            {success && <span style={{ fontSize:13, color:'#059669', padding:'8px 14px', background:'#ECFDF5', borderRadius:9 }}>✅ {success}</span>}
+            {error && <span style={{ fontSize:13, color:'#DC2626', padding:'8px 14px', background:'#FEF2F2', borderRadius:9 }}>⚠️ {error}</span>}
+            <button onClick={() => save('draft')} disabled={saving} style={{ ...S.btnDraft, opacity:saving?.5:1 }}>{saving?'Menyimpan...':'💾 Draft'}</button>
+            <button onClick={() => save('pending')} disabled={submitting} style={{ ...S.btnSubmit, opacity:submitting?.5:1 }}>{submitting?'Mengirim...':'📤 Kirim Review'}</button>
+          </div>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 px-4 py-3 rounded-xl flex items-start gap-2 text-sm" style={{ background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' }}>
-          <AlertCircle size={14} className="mt-0.5 shrink-0" />{error}
-        </div>
-      )}
-      {success && (
-        <div className="mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: '#F0FFF4', color: '#16A34A', border: '1px solid #BBF7D0' }}>
-          {success}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main editor */}
-        <div className="lg:col-span-2 space-y-5">
+      <div className="tulis-grid" style={{ ...S.body }}>
+        {/* Editor */}
+        <div style={S.mainCard}>
           {/* Cover image */}
-          <div>
-            {coverPreview ? (
-              <div className="relative rounded-xl overflow-hidden" style={{ height: 200 }}>
-                <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
-                <button onClick={() => { setCoverPreview(''); setForm(f => ({ ...f, cover_image: '' })) }}
-                  className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)', color: 'white' }}>
-                  <X size={14} />
+          <div style={{ marginBottom:20 }}>
+            {coverPreview || coverUrl ? (
+              <div style={{ position:'relative', borderRadius:12, overflow:'hidden', marginBottom:12 }}>
+                <img src={coverPreview || coverUrl} alt="Cover" style={{ width:'100%', height:200, objectFit:'cover' }} />
+                <button onClick={() => { setCoverPreview(''); setCoverUrl('') }}
+                  style={{ position:'absolute', top:10, right:10, background:'rgba(0,0,0,0.6)', color:'white', border:'none', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontSize:12 }}>
+                  ✕ Hapus
                 </button>
               </div>
             ) : (
-              <button onClick={() => fileRef.current?.click()} className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed transition-all hover:border-navy" style={{ borderColor: '#E9ECEF' }}>
-                <Upload size={22} style={{ color: '#ADB5BD' }} />
-                <span className="text-sm" style={{ color: '#ADB5BD' }}>Klik untuk upload foto sampul</span>
-                <span className="text-xs" style={{ color: '#ADB5BD' }}>JPG, PNG (maks. 5MB)</span>
-              </button>
+              <div onClick={() => fileRef.current?.click()} style={{ border:'2px dashed #E9ECEF', borderRadius:12, padding:'28px', textAlign:'center', cursor:'pointer', background:'#F8F9FA' }}>
+                <div style={{ fontSize:28, marginBottom:8 }}>🖼️</div>
+                <div style={{ fontSize:14, color:'#6C757D', fontWeight:500 }}>Klik untuk upload foto sampul</div>
+                <div style={{ fontSize:12, color:'#ADB5BD', marginTop:4 }}>JPG, PNG maksimal 5MB</div>
+              </div>
             )}
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleCoverFile} style={{ display:'none' }} />
+
+            {/* URL input for image */}
+            <div style={{ marginTop:10 }}>
+              <input type="url" placeholder="Atau paste URL gambar: https://..." style={{ ...S.input, fontSize:13 }}
+                onChange={e => { if(e.target.value) { setCoverPreview(e.target.value); setCoverUrl(e.target.value) } }} />
+            </div>
           </div>
 
           {/* Title */}
-          <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            placeholder="Judul artikel kamu..."
-            className="w-full px-0 py-2 text-3xl font-bold border-0 border-b outline-none bg-transparent"
-            style={{ fontFamily: 'Playfair Display, serif', color: '#0d2347', borderColor: '#E9ECEF' }} />
+          <input type="text" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}
+            placeholder="Judul berita atau opini kamu..."
+            style={{ width:'100%', fontSize:'clamp(18px,3vw,26px)', fontFamily:'Playfair Display,serif', fontWeight:700, color:'#0d2347', border:'none', borderBottom:'2px solid #E9ECEF', padding:'8px 0', outline:'none', marginBottom:16, boxSizing:'border-box' }} />
 
           {/* Excerpt */}
-          <textarea value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))}
-            placeholder="Ringkasan singkat artikel (opsional, auto-generate jika kosong)..."
-            rows={2}
-            className="w-full px-4 py-3 rounded-xl border text-sm outline-none resize-none"
-            style={{ borderColor: '#E9ECEF', color: '#343A40' }}
-            onFocus={e => e.target.style.borderColor='#1B3A6B'}
-            onBlur={e => e.target.style.borderColor='#E9ECEF'} />
+          <textarea value={form.excerpt} onChange={e=>setForm(f=>({...f,excerpt:e.target.value}))}
+            placeholder="Ringkasan singkat (opsional)..."
+            rows={2} style={{ ...S.input, resize:'none', marginBottom:16, fontSize:14, color:'#4A5568', fontStyle:'italic' }} />
 
           {/* Editor */}
-          <RichEditor content={form.content} onChange={content => setForm(f => ({ ...f, content }))} placeholder="Mulai menulis artikel kamu di sini..." />
+          <RichEditor content={form.content} onChange={content=>setForm(f=>({...f,content}))} />
         </div>
 
-        {/* Sidebar settings */}
-        <div className="space-y-4">
+        {/* Sidebar */}
+        <aside className="tulis-side">
           {/* Type */}
-          <div className="bg-white rounded-xl border p-4" style={{ borderColor: '#E9ECEF' }}>
-            <label className="block text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: '#6C757D' }}>Jenis Tulisan</label>
-            <div className="grid grid-cols-2 gap-2">
-              {['opini', 'berita'].map(t => (
-                <button key={t} type="button" onClick={() => setForm(f => ({ ...f, type: t as any }))}
-                  className="py-2.5 rounded-lg text-sm font-semibold capitalize transition-all"
-                  style={{ background: form.type === t ? (t === 'opini' ? '#C9A84C' : '#1B3A6B') : '#F8F9FA', color: form.type === t ? (t === 'opini' ? '#1B3A6B' : 'white') : '#6C757D' }}>
-                  {t}
-                </button>
-              ))}
+          <div style={S.sideCard}>
+            <div style={S.sideLabel}>Jenis Tulisan</div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={()=>setForm(f=>({...f,type:'opini'}))} style={S.typeBtn(form.type==='opini','opini')}>📝 Opini</button>
+              <button onClick={()=>setForm(f=>({...f,type:'berita'}))} style={S.typeBtn(form.type==='berita','berita')}>📰 Berita</button>
             </div>
           </div>
 
           {/* Category */}
-          <div className="bg-white rounded-xl border p-4" style={{ borderColor: '#E9ECEF' }}>
-            <label className="block text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: '#6C757D' }}>Kategori</label>
-            <select value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none" style={{ borderColor: '#E9ECEF', color: '#343A40' }}>
+          <div style={S.sideCard}>
+            <div style={S.sideLabel}>Kategori</div>
+            <select value={form.category_id} onChange={e=>setForm(f=>({...f,category_id:e.target.value}))} style={S.select}>
               <option value="">Pilih kategori...</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
 
           {/* Tags */}
-          <div className="bg-white rounded-xl border p-4" style={{ borderColor: '#E9ECEF' }}>
-            <label className="block text-xs font-semibold mb-1 uppercase tracking-wider" style={{ color: '#6C757D' }}>Tag</label>
-            <p className="text-xs mb-3" style={{ color: '#ADB5BD' }}>Pisahkan dengan koma</p>
-            <input type="text" value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-              placeholder="hukum pidana, MK, konstitusi"
-              className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none" style={{ borderColor: '#E9ECEF', color: '#343A40' }}
-              onFocus={e => e.target.style.borderColor='#1B3A6B'}
-              onBlur={e => e.target.style.borderColor='#E9ECEF'} />
+          <div style={S.sideCard}>
+            <div style={S.sideLabel}>Tag</div>
+            <input type="text" value={form.tags} onChange={e=>setForm(f=>({...f,tags:e.target.value}))}
+              placeholder="hukum pidana, MK..." style={S.input} />
+            <div style={{ fontSize:11, color:'#ADB5BD', marginTop:6 }}>Pisahkan dengan koma</div>
           </div>
 
-          {/* Guide */}
-          <div className="rounded-xl p-4" style={{ background: '#EFF4FF', border: '1px solid #C3D3F0' }}>
-            <h4 className="text-sm font-semibold mb-2" style={{ color: '#1B3A6B' }}>Panduan Menulis</h4>
-            <ul className="space-y-1.5">
-              {['Gunakan bahasa yang jelas dan faktual', 'Sertakan sumber yang dapat diverifikasi', 'Opini harus berdasarkan analisis', 'Min. 300 kata untuk artikel berita', 'Foto sampul meningkatkan keterbacaan'].map(g => (
-                <li key={g} className="text-xs flex items-start gap-1.5" style={{ color: '#2a4f8f' }}>
-                  <span className="mt-0.5">✓</span>{g}
-                </li>
-              ))}
-            </ul>
+          {/* Tips */}
+          <div style={{ ...S.sideCard, background:'linear-gradient(135deg,#EFF4FF,#F8F9FA)', border:'1px solid #C3D3F0' }}>
+            <div style={{ ...S.sideLabel, color:'#1B3A6B' }}>💡 Tips Menulis</div>
+            {['Gunakan bahasa yang jelas','Sertakan sumber terpercaya','Opini perlu argumen kuat','Min. 300 kata untuk berita','Foto sampul menarik pembaca'].map(t=>(
+              <div key={t} style={{ fontSize:12, color:'#2a4f8f', marginBottom:6, display:'flex', gap:6 }}>
+                <span style={{ color:'#C9A84C' }}>✓</span>{t}
+              </div>
+            ))}
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   )
