@@ -62,12 +62,16 @@ export default function TulisPage() {
     
     status === 'draft' ? setSaving(true) : setSubmitting(true)
     setError('')
+
+    // Always get fresh user from auth
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (!currentUser) { setError('Sesi habis, silakan login ulang.'); setSaving(false); setSubmitting(false); return }
     
     const payload = {
       title: form.title, excerpt: form.excerpt || form.content.replace(/<[^>]+>/g,'').slice(0,200),
       content: form.content, type: form.type, category_id: form.category_id || null,
       tags: form.tags.split(',').map(t=>t.trim()).filter(Boolean),
-      cover_image: coverUrl || null, author_id: user.id, status,
+      cover_image: coverUrl || null, author_id: currentUser.id, status,
       slug: generateSlug(form.title),
     }
 
