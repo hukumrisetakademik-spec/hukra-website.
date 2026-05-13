@@ -20,6 +20,7 @@ export default function TulisPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [savedId, setSavedId] = useState<string|null>(null)
+  const [showThanks, setShowThanks] = useState(false)
   const [activeTab, setActiveTab] = useState<'editor'|'settings'>('editor')
   const supabase = createBrowserClient()
   const router = useRouter()
@@ -84,7 +85,15 @@ export default function TulisPage() {
 
     if (res.error) { setError(res.error.message); setSaving(false); setSubmitting(false); return }
     if (status === 'draft') { setSavedId(res.data.id); setSuccess('Draft tersimpan!'); setTimeout(()=>setSuccess(''),3000); setSaving(false) }
-    else { router.push('/dashboard?submitted=true') }
+    else {
+      // Reset form dan tampilkan popup terima kasih
+      setForm({ title:'', excerpt:'', content:'', type:'opini', category_id:'', tags:'' })
+      setCoverPreview('')
+      setCoverUrl('')
+      setSavedId(null)
+      setSubmitting(false)
+      setShowThanks(true)
+    }
   }
 
   const S = {
@@ -104,6 +113,24 @@ export default function TulisPage() {
     select: { width:'100%', padding:'10px 14px', borderRadius:9, border:'1.5px solid #E9ECEF', fontSize:14, outline:'none', boxSizing:'border-box' as const, background:'white' },
     typeBtn: (active: boolean, type: string) => ({ flex:1, padding:'9px', borderRadius:8, border:`1.5px solid ${active?(type==='opini'?'#C9A84C':'#1B3A6B'):'#E9ECEF'}`, background: active?(type==='opini'?'#C9A84C':'#1B3A6B'):'white', color: active?(type==='opini'?'#1B3A6B':'white'):'#6C757D', fontSize:13, fontWeight:700, cursor:'pointer' }),
   }
+
+  if (showThanks) return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F8F9FA', padding:24 }}>
+      <div style={{ background:'white', borderRadius:20, padding:40, textAlign:'center', maxWidth:400, boxShadow:'0 4px 32px rgba(0,0,0,0.08)' }}>
+        <div style={{ fontSize:64, marginBottom:16 }}>🎉</div>
+        <h2 style={{ fontFamily:'Playfair Display,serif', color:'#0d2347', fontSize:24, fontWeight:700, marginBottom:12 }}>Terima kasih sudah menulis!</h2>
+        <p style={{ color:'#6C757D', lineHeight:1.7, marginBottom:24 }}>Tulisanmu sudah dikirim ke admin untuk direview. Admin akan memeriksa dan mempublikasikannya dalam 1-2 hari kerja.</p>
+        <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
+          <button onClick={() => setShowThanks(false)} style={{ padding:'12px 24px', borderRadius:10, background:'#1B3A6B', color:'white', fontWeight:700, fontSize:14, border:'none', cursor:'pointer' }}>
+            ✍️ Tulis Lagi
+          </button>
+          <a href=/ style={{ padding:'12px 24px', borderRadius:10, border:'1.5px solid #E9ECEF', color:'#343A40', fontWeight:600, fontSize:14, textDecoration:'none', display:'inline-block' }}>
+            🏠 Ke Beranda
+          </a>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div style={S.page}>
