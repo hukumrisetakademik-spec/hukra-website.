@@ -65,29 +65,64 @@ export default function TulisPage() {
     status === 'draft' ? setSaving(true) : setSubmitting(true)
     setError('')
 
-    // Always get fresh user from auth
-    const { data: { user: currentUser } } = await supabase.auth.getUser()
-    if (!currentUser) { setError('Sesi habis, silakan login ulang.'); setSaving(false); setSubmitting(false); return }
+    // Get session token
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setError('Sesi habis, silakan login ulang.'); setSaving(false); setSubmitting(false); return }
+
+    const token = session.access_token
+    const userId = session.user.id
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     
     const payload = {
-      title: form.title, excerpt: form.excerpt || form.content.replace(/<[^>]+>/g,'').slice(0,200),
+      title: form.title, 
+      excerpt: form.excerpt || form.content.replace(/<[^>]+>/g,'').slice(0,200),
       content: form.content, type: form.type, category_id: form.category_id || null,
-      tags: form.tags.split(',').map(t=>t.trim()).filter(Boolean),
-      cover_image: coverUrl || null, author_id: currentUser.id, status,
+      tags: form.tags.split(',').map((t:string)=>t.trim()).filter(Boolean),
+      cover_image: coverUrl || null, author_id: userId, status,
       slug: generateSlug(form.title),
     }
 
-    let res: any
+    let response: Response
     if (savedId) {
-      res = await (db as any).from('articles').update(payload).eq('id', savedId).select().single()
+      response = await fetch(`${supabaseUrl}/rest/v1/articles?id=eq.${savedId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          'Authorization': `Bearer ${token}`,
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(payload),
+      })
     } else {
-      res = await (db as any).from('articles').insert(payload).select().single()
+      response = await fetch(`${supabaseUrl}/rest/v1/articles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          'Authorization': `Bearer ${token}`,
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(payload),
+      })
     }
 
-    if (res.error) { setError(res.error.message); setSaving(false); setSubmitting(false); return }
-    if (status === 'draft') { setSavedId(res.data.id); setSuccess('Draft tersimpan!'); setTimeout(()=>setSuccess(''),3000); setSaving(false) }
-    else {
-      // Reset form dan tampilkan popup terima kasih
+    if (!response.ok) {
+      const errText = await response.text()
+      setError(errText || 'Gagal menyimpan artikel.')
+      setSaving(false); setSubmitting(false)
+      return
+    }
+
+    const data = await response.json()
+    const articleData = Array.isArray(data) ? data[0] : data
+
+    if (status === 'draft') { 
+      setSavedId(articleData?.id); 
+      setSuccess('Draft tersimpan!'); 
+      setTimeout(()=>setSuccess(''),3000); 
+      setSaving(false) 
+    } else {
       setForm({ title:'', excerpt:'', content:'', type:'opini', category_id:'', tags:'' })
       setCoverPreview('')
       setCoverUrl('')
