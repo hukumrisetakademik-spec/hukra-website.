@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { createBrowserClient } from '@/lib/supabase'
+import { getSupabaseClient } from '@/lib/supabase-client'
 import slugify from 'slugify'
 
 const RichEditor = dynamic(() => import('@/components/RichEditor'), { ssr: false, loading: () => (
@@ -25,7 +26,7 @@ export default function TulisPage() {
   const supabase = createBrowserClient()
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
-  const db = createBrowserClient()
+  const db = getSupabaseClient()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
