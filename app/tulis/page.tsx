@@ -65,7 +65,6 @@ export default function TulisPage() {
     status === 'draft' ? setSaving(true) : setSubmitting(true)
     setError('')
 
-    // Get session token
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setError('Sesi habis, silakan login ulang.'); setSaving(false); setSubmitting(false); return }
 
@@ -160,7 +159,7 @@ export default function TulisPage() {
           <button onClick={() => setShowThanks(false)} style={{ padding:'12px 24px', borderRadius:10, background:'#1B3A6B', color:'white', fontWeight:700, fontSize:14, border:'none', cursor:'pointer' }}>
             ✍️ Tulis Lagi
           </button>
-          <a href=/ style={{ padding:'12px 24px', borderRadius:10, border:'1.5px solid #E9ECEF', color:'#343A40', fontWeight:600, fontSize:14, textDecoration:'none', display:'inline-block' }}>
+          <a href="/" style={{ padding:'12px 24px', borderRadius:10, border:'1.5px solid #E9ECEF', color:'#343A40', fontWeight:600, fontSize:14, textDecoration:'none', display:'inline-block' }}>
             🏠 Ke Beranda
           </a>
         </div>
@@ -182,8 +181,8 @@ export default function TulisPage() {
           <div style={S.btnRow}>
             {success && <span style={{ fontSize:13, color:'#059669', padding:'8px 14px', background:'#ECFDF5', borderRadius:9 }}>✅ {success}</span>}
             {error && <span style={{ fontSize:13, color:'#DC2626', padding:'8px 14px', background:'#FEF2F2', borderRadius:9 }}>⚠️ {error}</span>}
-            <button onClick={() => save('draft')} disabled={saving} style={{ ...S.btnDraft, opacity:saving?.5:1 }}>{saving?'Menyimpan...':'💾 Draft'}</button>
-            <button onClick={() => save('pending')} disabled={submitting} style={{ ...S.btnSubmit, opacity:submitting?.5:1 }}>{submitting?'Mengirim...':'📤 Kirim Review'}</button>
+            <button onClick={() => save('draft')} disabled={saving} style={{ ...S.btnDraft, opacity:saving ? 0.5 : 1 }}>{saving ? 'Menyimpan...' : '💾 Draft'}</button>
+            <button onClick={() => save('pending')} disabled={submitting} style={{ ...S.btnSubmit, opacity:submitting ? 0.5 : 1 }}>{submitting ? 'Mengirim...' : '📤 Kirim Review'}</button>
           </div>
         </div>
       </div>
@@ -210,7 +209,6 @@ export default function TulisPage() {
             )}
             <input ref={fileRef} type="file" accept="image/*" onChange={handleCoverFile} style={{ display:'none' }} />
 
-            {/* URL input for image */}
             <div style={{ marginTop:10 }}>
               <input type="url" placeholder="Atau paste URL gambar: https://..." style={{ ...S.input, fontSize:13 }}
                 onChange={e => { if(e.target.value) { setCoverPreview(e.target.value); setCoverUrl(e.target.value) } }} />
