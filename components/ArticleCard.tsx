@@ -16,14 +16,14 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
 
   if (variant === 'compact') {
     return (
-      <Link href={`/artikel/${article.slug}`} className="flex gap-3 py-3 border-b group" style={{ borderColor: '#F1F3F5' }}>
+      <Link href={`/artikel/${article.slug}`} style={{ display:'flex', gap:12, paddingBottom:12, marginBottom:12, borderBottom:'1px solid #F1F3F5', textDecoration:'none', color:'inherit' }}>
         {article.cover_image && (
           <div style={{ width:56, height:44, borderRadius:8, overflow:'hidden', flexShrink:0 }}>
             <img src={article.cover_image} alt={article.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
           </div>
         )}
-        <div className="flex-1 min-w-0">
-          <span className={article.type === 'berita' ? 'badge-berita' : 'badge-opini'} style={{ fontSize: 9, marginBottom: 4, display: 'inline-block' }}>{article.type}</span>
+        <div style={{ flex:1, minWidth:0 }}>
+          <span className={article.type === 'berita' ? 'badge-berita' : 'badge-opini'} style={{ fontSize:9, marginBottom:4, display:'inline-block' }}>{article.type}</span>
           <h3 style={{ fontSize:13, fontWeight:500, lineHeight:1.35, color:'#343A40', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{article.title}</h3>
           <p style={{ fontSize:11, color:'#ADB5BD', marginTop:3 }}>{timeAgo}</p>
         </div>
@@ -33,7 +33,7 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
 
   if (variant === 'horizontal') {
     return (
-      <Link href={`/artikel/${article.slug}`} style={{ display:'flex', gap:14, background:'white', borderRadius:12, padding:14, border:'1px solid #E9ECEF', textDecoration:'none', color:'inherit', transition:'box-shadow .2s' }}>
+      <Link href={`/artikel/${article.slug}`} style={{ display:'flex', gap:14, background:'white', borderRadius:12, padding:14, border:'1px solid #E9ECEF', textDecoration:'none', color:'inherit' }}>
         {article.cover_image ? (
           <div style={{ width:100, height:72, borderRadius:9, overflow:'hidden', flexShrink:0 }}>
             <img src={article.cover_image} alt={article.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -83,48 +83,46 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
     )
   }
 
-  // Default card — gambar lebih kecil & proporsional
+  // Default card — pure CSS hover via className
   return (
-    <Link href={`/artikel/${article.slug}`} style={{ background:'white', borderRadius:12, border:'1px solid #E9ECEF', overflow:'hidden', display:'block', textDecoration:'none', transition:'transform .2s, box-shadow .2s' }}
-      onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 6px 24px rgba(0,0,0,0.1)' }}
-      onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none' }}>
-      {/* Gambar diperkecil: h-36 (144px) bukan h-44 */}
-      {article.cover_image ? (
-        <div style={{ height:148, overflow:'hidden' }}>
-          <img src={article.cover_image} alt={article.title} style={{ width:'100%', height:'100%', objectFit:'cover', transition:'transform .4s' }}
-            onMouseEnter={e => (e.currentTarget.style.transform='scale(1.04)')}
-            onMouseLeave={e => (e.currentTarget.style.transform='scale(1)')} />
-        </div>
-      ) : (
-        <div style={{ height:110, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#EFF4FF,#E9ECEF)', fontSize:36 }}>⚖️</div>
-      )}
-      <div style={{ padding:'12px 14px 14px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:7 }}>
-          <span className={article.type === 'berita' ? 'badge-berita' : 'badge-opini'}>{article.type}</span>
-          {categoryName && <span style={{ fontSize:11, color:'#ADB5BD' }}>{categoryName}</span>}
-        </div>
-        <h3 style={{ fontFamily:'Playfair Display,serif', fontSize:14, fontWeight:600, lineHeight:1.4, color:'#0d2347', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:6 }}>
-          {article.title}
-        </h3>
-        {article.excerpt && (
-          <p style={{ fontSize:12, color:'#6C757D', lineHeight:1.55, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:10 }}>{article.excerpt}</p>
+    <>
+      <style>{`.article-card{background:white;border-radius:12px;border:1px solid #E9ECEF;overflow:hidden;display:block;text-decoration:none;transition:transform .2s,box-shadow .2s}.article-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,0.1)}.article-card-img img{transition:transform .4s}.article-card:hover .article-card-img img{transform:scale(1.04)}`}</style>
+      <Link href={`/artikel/${article.slug}`} className="article-card">
+        {article.cover_image ? (
+          <div className="article-card-img" style={{ height:148, overflow:'hidden' }}>
+            <img src={article.cover_image} alt={article.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          </div>
+        ) : (
+          <div style={{ height:110, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#EFF4FF,#E9ECEF)', fontSize:36 }}>⚖️</div>
         )}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:10, borderTop:'1px solid #F1F3F5' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-            <div style={{ width:22, height:22, borderRadius:'50%', background:'#EFF4FF', color:'#1B3A6B', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700 }}>
-              {authorName[0]?.toUpperCase()}
+        <div style={{ padding:'12px 14px 14px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:7 }}>
+            <span className={article.type === 'berita' ? 'badge-berita' : 'badge-opini'}>{article.type}</span>
+            {categoryName && <span style={{ fontSize:11, color:'#ADB5BD' }}>{categoryName}</span>}
+          </div>
+          <h3 style={{ fontFamily:'Playfair Display,serif', fontSize:14, fontWeight:600, lineHeight:1.4, color:'#0d2347', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:6 }}>
+            {article.title}
+          </h3>
+          {article.excerpt && (
+            <p style={{ fontSize:12, color:'#6C757D', lineHeight:1.55, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden', marginBottom:10 }}>{article.excerpt}</p>
+          )}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:10, borderTop:'1px solid #F1F3F5' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <div style={{ width:22, height:22, borderRadius:'50%', background:'#EFF4FF', color:'#1B3A6B', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700 }}>
+                {authorName[0]?.toUpperCase()}
+              </div>
+              <span style={{ fontSize:11, fontWeight:500, color:'#343A40' }}>{authorName}</span>
             </div>
-            <span style={{ fontSize:11, fontWeight:500, color:'#343A40' }}>{authorName}</span>
+            <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:11, color:'#ADB5BD' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:2 }}><Eye size={10} />{article.view_count || 0}</span>
+              <span style={{ display:'flex', alignItems:'center', gap:2 }}><Heart size={10} />{article.like_count || 0}</span>
+            </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:11, color:'#ADB5BD' }}>
-            <span style={{ display:'flex', alignItems:'center', gap:2 }}><Eye size={10} />{article.view_count || 0}</span>
-            <span style={{ display:'flex', alignItems:'center', gap:2 }}><Heart size={10} />{article.like_count || 0}</span>
-          </div>
+          <p style={{ fontSize:11, color:'#ADB5BD', marginTop:6, display:'flex', alignItems:'center', gap:4 }}>
+            <Clock size={10} />{timeAgo} · {readTime || 1} menit baca
+          </p>
         </div>
-        <p style={{ fontSize:11, color:'#ADB5BD', marginTop:6, display:'flex', alignItems:'center', gap:4 }}>
-          <Clock size={10} />{timeAgo} · {readTime || 1} menit baca
-        </p>
-      </div>
-    </Link>
+      </Link>
+    </>
   )
 }
