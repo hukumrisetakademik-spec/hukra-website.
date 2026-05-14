@@ -1,6 +1,8 @@
 import { createSupabaseServerClient } from '@/lib/server-client'
 import Link from 'next/link'
 
+export const viewport = { width: 'device-width', initialScale: 1 }
+
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient()
   const [l, tr, op, ne, ca] = await Promise.all([

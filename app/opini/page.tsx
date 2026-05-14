@@ -3,6 +3,7 @@ import ArticleCard from '@/components/ArticleCard'
 import type { Article } from '@/lib/supabase'
 
 export const metadata = { title: 'Opini Hukum — HUKRA' }
+export const viewport = { width: 'device-width', initialScale: 1 }
 
 export default async function OpiniPage() {
   const supabase = await createSupabaseServerClient()
