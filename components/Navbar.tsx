@@ -1,205 +1,286 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase'
+
+const KATEGORI_STATIC = [
+  { name: 'Hukum Pidana', slug: 'hukum-pidana', color: '#DC2626' },
+  { name: 'Hukum Perdata', slug: 'hukum-perdata', color: '#2563EB' },
+  { name: 'HAM', slug: 'ham', color: '#7C3AED' },
+  { name: 'Konstitusi', slug: 'konstitusi', color: '#059669' },
+  { name: 'Akademik', slug: 'akademik', color: '#D97706' },
+]
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const supabase = createBrowserClient()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [kategoriOpen, setKategoriOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [categories, setCategories] = useState(KATEGORI_STATIC)
+  const searchRef = useRef<HTMLDivElement>(null)
+  const kategoriRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
-  const pathname = usePathname()
+  const supabase = createBrowserClient()
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
-      if (data.user) supabase.from('profiles').select('*').eq('id', data.user.id).single().then(({ data: p }) => setProfile(p))
+      if (data.user) {
+        setUser(data.user)
+        supabase.from('profiles').select('*').eq('id', data.user.id).single()
+          .then(({ data: p }) => setProfile(p))
+      }
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data: p }) => setProfile(p))
-      else setProfile(null)
-    })
-    return () => subscription.unsubscribe()
+    // Load kategori dari DB
+    supabase.from('categories').select('*').order('name')
+      .then(({ data }) => { if (data && data.length > 0) setCategories(data) })
+
+    // Close dropdowns on outside click
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false)
+      }
+      if (kategoriRef.current && !kategoriRef.current.contains(e.target as Node)) {
+        setKategoriOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-    setMenuOpen(false)
-  }
+  // Debounced search
+  useEffect(() => {
+    if (!searchQuery.trim()) { setSearchResults([]); return }
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      const { data } = await supabase.from('articles')
+        .select('id, title, slug, type, excerpt')
+        .eq('status', 'published')
+        .or(`title.ilike.%${searchQuery}%,excerpt.ilike.%${searchQuery}%`)
+        .limit(6)
+      setSearchResults(data || [])
+      setSearching(false)
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (search.trim()) { router.push(`/cari?q=${encodeURIComponent(search.trim())}`); setMenuOpen(false) }
+    if (!searchQuery.trim()) return
+    setSearchOpen(false)
+    setMobileMenuOpen(false)
+    router.push(`/cari?q=${encodeURIComponent(searchQuery)}`)
   }
 
   const navLinks = [
-    { name: 'Beranda', href: '/' },
-    { name: 'Berita', href: '/berita' },
-    { name: 'Opini', href: '/opini' },
-    { name: 'Hukum Pidana', href: '/kategori/hukum-pidana' },
-    { name: 'HAM', href: '/kategori/ham' },
-    { name: 'Akademik', href: '/kategori/akademik' },
-    { name: 'Tentang Kami', href: '/tentang' },
+    { label: 'Beranda', href: '/' },
+    { label: 'Berita', href: '/berita' },
+    { label: 'Opini', href: '/opini' },
   ]
 
   return (
     <>
-      <style>{`
-        .nav-top{background:linear-gradient(135deg,#0d2347,#1B3A6B);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(13,35,71,0.2)}
-        .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:56px;gap:12px}
-        .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0}
-        .nav-logo img{width:32px;height:32px;border-radius:7px;object-fit:cover;border:1.5px solid #C9A84C}
-        .nav-logo-text .name{color:white;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;letter-spacing:2px;display:block;line-height:1}
-        .nav-logo-text .sub{color:#C9A84C;font-size:7px;letter-spacing:2px;font-weight:600;display:block;margin-top:2px}
-        .nav-search{flex:1;max-width:260px;position:relative}
-        .nav-search input{width:100%;padding:7px 12px 7px 30px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-size:13px;outline:none}
-        .nav-search input::placeholder{color:rgba(255,255,255,0.5)}
-        .nav-search .icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px}
-        .nav-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-        .btn-gold{padding:7px 16px;border-radius:8px;background:#C9A84C;color:#1B3A6B;font-weight:700;font-size:13px;text-decoration:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
-        .btn-outline-nav{padding:7px 14px;border-radius:8px;border:1px solid rgba(201,168,76,0.5);color:#C9A84C;font-size:13px;font-weight:600;text-decoration:none;background:transparent;cursor:pointer}
-        .nav-avatar{width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.2);border:1.5px solid #C9A84C;color:#C9A84C;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
-        .hamburger{background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:4px;display:none}
-        .nav-cat{background:#0a1e3d;border-bottom:2px solid rgba(201,168,76,0.2);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-        .nav-cat::-webkit-scrollbar{display:none}
-        .nav-cat-inner{max-width:1100px;margin:0 auto;display:flex;padding:0 16px;white-space:nowrap}
-        .nav-cat a{padding:9px 14px;font-size:12px;font-weight:600;color:rgba(255,255,255,0.65);border-bottom:2px solid transparent;text-decoration:none;display:inline-block;flex-shrink:0}
-        .nav-cat a.active{color:#C9A84C;border-bottom-color:#C9A84C}
-        .nav-dropdown{position:absolute;right:0;top:calc(100% + 8px);width:180px;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.12);border:1px solid #E9ECEF;overflow:hidden;z-index:200}
-        .nav-dropdown a,.nav-dropdown button{display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:13px;color:#343A40;text-decoration:none;background:none;border:none;width:100%;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif}
-        .nav-dropdown a:hover,.nav-dropdown button:hover{background:#F8F9FA}
-        .mobile-menu{background:white;border-bottom:1px solid #E9ECEF;display:none}
-        .mobile-menu.open{display:block}
-        .mobile-menu a,.mobile-menu button{display:block;padding:13px 20px;font-size:14px;color:#343A40;border-bottom:1px solid #F8F9FA;text-decoration:none;background:none;border-left:none;border-right:none;border-top:none;width:100%;text-align:left;cursor:pointer;font-family:'DM Sans',sans-serif}
-        .mobile-search{padding:12px 16px;border-bottom:1px solid #E9ECEF}
-        .mobile-search form{display:flex;gap:8px}
-        .mobile-search input{flex:1;padding:9px 14px;border-radius:9px;border:1.5px solid #E9ECEF;font-size:14px;outline:none}
-        .mobile-search button{padding:9px 16px;border-radius:9px;background:#1B3A6B;color:white;border:none;font-size:13px;font-weight:600;cursor:pointer}
-        @media(max-width:768px){
-          .hamburger{display:block!important}
-          .nav-search{display:none}
-          .hide-desktop-nav{display:none}
-          .nav-cat{display:none}
-        }
-      `}</style>
+      <nav style={{ background:'#0d2347', borderBottom:'1px solid rgba(201,168,76,0.2)', position:'sticky', top:0, zIndex:100 }}>
+        <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 16px' }}>
+          <div style={{ display:'flex', alignItems:'center', height:60, gap:16 }}>
 
-      <header className="nav-top">
-        <div className="nav-inner">
-          <Link href="/" className="nav-logo">
-            <img src="/logo-hukra.jpg" alt="HUKRA" />
-            <div className="nav-logo-text">
-              <span className="name">HUKRA</span>
-              <span className="sub">HUKUM DAN RISET AKADEMIKA</span>
-            </div>
-          </Link>
+            {/* Logo */}
+            <Link href="/" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flexShrink:0 }}>
+              <img src="/icon.png" alt="HUKRA" style={{ width:36, height:36, borderRadius:8, objectFit:'cover', border:'1.5px solid #C9A84C' }} />
+              <div className="hide-mobile">
+                <div style={{ fontFamily:'Playfair Display,serif', color:'white', fontSize:16, fontWeight:700, lineHeight:1.1 }}>HUKRA</div>
+                <div style={{ color:'#C9A84C', fontSize:9, letterSpacing:'0.15em', fontWeight:600 }}>HUKUM DAN RISET AKADEMIKA</div>
+              </div>
+            </Link>
 
-          <form onSubmit={handleSearch} className="nav-search">
-            <span className="icon">🔍</span>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari berita..." />
-          </form>
+            {/* Nav Links + Kategori Dropdown */}
+            <div className="hide-mobile" style={{ display:'flex', alignItems:'center', gap:4, marginLeft:8 }}>
+              {navLinks.map(l => (
+                <Link key={l.href} href={l.href} style={{ color:'rgba(255,255,255,0.85)', fontSize:13, fontWeight:500, padding:'6px 12px', borderRadius:7, transition:'all .15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  {l.label}
+                </Link>
+              ))}
 
-          <div className="nav-right">
-            {user ? (
-              <>
-                <Link href="/tulis" className="btn-gold hide-desktop-nav" style={{ display:'flex', alignItems:'center', gap:6 }}>✍️ Tulis</Link>
-                <div style={{ position:'relative' }}>
-                  <div className="nav-avatar" onClick={() => setProfileOpen(!profileOpen)}>
-                    {profile?.avatar_url
-                      ? <img src={profile.avatar_url} alt="" style={{ width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover' }} />
-                      : profile?.full_name?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                  {profileOpen && (
-                    <div className="nav-dropdown">
-                      <div style={{ padding:'12px 16px', borderBottom:'1px solid #F1F3F5', background:'#F8F9FA' }}>
-                        <div style={{ fontSize:13, fontWeight:700, color:'#0d2347' }}>{profile?.full_name}</div>
-                        <div style={{ fontSize:11, color:'#6C757D' }}>@{profile?.username}</div>
+              {/* Kategori Dropdown */}
+              <div ref={kategoriRef} style={{ position:'relative' }}>
+                <button onClick={() => setKategoriOpen(o => !o)}
+                  style={{ display:'flex', alignItems:'center', gap:5, color:'rgba(255,255,255,0.85)', fontSize:13, fontWeight:500, padding:'6px 12px', borderRadius:7, background: kategoriOpen ? 'rgba(255,255,255,0.08)' : 'transparent', border:'none', cursor:'pointer', transition:'all .15s' }}>
+                  Kategori
+                  <span style={{ fontSize:10, transition:'transform .2s', transform: kategoriOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                </button>
+
+                {kategoriOpen && (
+                  <div style={{ position:'absolute', top:'calc(100% + 8px)', left:0, background:'white', borderRadius:12, boxShadow:'0 8px 32px rgba(0,0,0,0.15)', border:'1px solid #E9ECEF', minWidth:220, overflow:'hidden', zIndex:200 }}>
+                    <div style={{ padding:'8px 0' }}>
+                      <div style={{ padding:'8px 16px 6px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.12em', color:'#ADB5BD' }}>Pilih Kategori</div>
+                      {categories.map(c => (
+                        <Link key={c.slug} href={`/kategori/${c.slug}`}
+                          onClick={() => setKategoriOpen(false)}
+                          style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 16px', color:'#0d2347', fontSize:13, fontWeight:500, transition:'background .1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#F8F9FA')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <span style={{ width:8, height:8, borderRadius:'50%', background: (c as any).color || '#1B3A6B', flexShrink:0 }} />
+                          {c.name}
+                        </Link>
+                      ))}
+                      <div style={{ borderTop:'1px solid #F1F3F5', margin:'6px 0 0' }}>
+                        <Link href="/kategori" onClick={() => setKategoriOpen(false)}
+                          style={{ display:'block', padding:'9px 16px', color:'#1B3A6B', fontSize:12, fontWeight:600 }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#F8F9FA')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          Lihat semua kategori →
+                        </Link>
                       </div>
-                      <Link href="/dashboard" onClick={() => setProfileOpen(false)}>👤 Dashboard</Link>
-                      {(profile?.role === 'admin' || profile?.role === 'editor') && (
-                        <Link href="/admin" onClick={() => setProfileOpen(false)} style={{ color:'#1B3A6B' }}>🛡️ Admin Panel</Link>
-                      )}
-                      <button onClick={handleSignOut} style={{ color:'#EF4444' }}>🚪 Keluar</button>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              <Link href="/tentang" style={{ color:'rgba(255,255,255,0.85)', fontSize:13, fontWeight:500, padding:'6px 12px', borderRadius:7, transition:'all .15s' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                Tentang Kami
+              </Link>
+            </div>
+
+            {/* Spacer */}
+            <div style={{ flex:1 }} />
+
+            {/* Search Bar */}
+            <div ref={searchRef} style={{ position:'relative', flex:'0 1 280px' }} className="hide-mobile">
+              <form onSubmit={handleSearch}>
+                <div style={{ position:'relative' }}>
+                  <span style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,0.4)', fontSize:14, pointerEvents:'none' }}>🔍</span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => { setSearchQuery(e.target.value); setSearchOpen(true) }}
+                    onFocus={() => setSearchOpen(true)}
+                    placeholder="Cari berita, opini..."
+                    style={{ width:'100%', padding:'8px 12px 8px 34px', borderRadius:9, background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', color:'white', fontSize:13, outline:'none' }}
+                  />
+                  {searchQuery && (
+                    <button type="button" onClick={() => { setSearchQuery(''); setSearchResults([]) }}
+                      style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'rgba(255,255,255,0.5)', cursor:'pointer', fontSize:14, padding:0 }}>✕</button>
                   )}
                 </div>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/masuk" className="btn-outline-nav">Masuk</Link>
-                <Link href="/auth/daftar" className="btn-gold hide-desktop-nav">Daftar</Link>
-              </>
-            )}
-            <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? '✕' : '☰'}
-            </button>
+              </form>
+
+              {/* Search Dropdown */}
+              {searchOpen && searchQuery.trim() && (
+                <div style={{ position:'absolute', top:'calc(100% + 8px)', left:0, right:0, background:'white', borderRadius:12, boxShadow:'0 8px 32px rgba(0,0,0,0.15)', border:'1px solid #E9ECEF', overflow:'hidden', zIndex:200 }}>
+                  {searching ? (
+                    <div style={{ padding:'16px', textAlign:'center', color:'#ADB5BD', fontSize:13 }}>Mencari...</div>
+                  ) : searchResults.length > 0 ? (
+                    <>
+                      {searchResults.map(r => (
+                        <Link key={r.id} href={`/artikel/${r.slug}`}
+                          onClick={() => { setSearchOpen(false); setSearchQuery('') }}
+                          style={{ display:'block', padding:'10px 14px', borderBottom:'1px solid #F8F9FA', color:'#0d2347' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#F8F9FA')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                            <span style={{ fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:4, background: r.type==='berita'?'#1B3A6B':'#C9A84C', color: r.type==='berita'?'#C9A84C':'#1B3A6B', textTransform:'uppercase', flexShrink:0 }}>{r.type}</span>
+                            <span style={{ fontSize:13, fontWeight:500, lineHeight:1.3 }}>{r.title}</span>
+                          </div>
+                          {r.excerpt && <p style={{ fontSize:11, color:'#ADB5BD', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.excerpt}</p>}
+                        </Link>
+                      ))}
+                      <Link href={`/cari?q=${encodeURIComponent(searchQuery)}`}
+                        onClick={() => setSearchOpen(false)}
+                        style={{ display:'block', padding:'9px 14px', textAlign:'center', fontSize:12, fontWeight:600, color:'#1B3A6B', background:'#F8F9FA' }}>
+                        Lihat semua hasil untuk "{searchQuery}" →
+                      </Link>
+                    </>
+                  ) : (
+                    <div style={{ padding:'16px', textAlign:'center', color:'#ADB5BD', fontSize:13 }}>Tidak ada hasil untuk "{searchQuery}"</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Tulis + Avatar */}
+            <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+              <Link href="/tulis" style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 16px', borderRadius:9, background:'#C9A84C', color:'#0d2347', fontWeight:700, fontSize:13, textDecoration:'none' }}>
+                <span>✍️</span>
+                <span className="hide-mobile">Tulis</span>
+              </Link>
+
+              {user ? (
+                <Link href="/profil" style={{ width:34, height:34, borderRadius:'50%', background:'#1B3A6B', border:'2px solid #C9A84C', display:'flex', alignItems:'center', justifyContent:'center', color:'#C9A84C', fontWeight:700, fontSize:13, overflow:'hidden', textDecoration:'none', flexShrink:0 }}>
+                  {profile?.avatar_url
+                    ? <img src={profile.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : (profile?.full_name?.[0] || user.email?.[0] || '?').toUpperCase()
+                  }
+                </Link>
+              ) : (
+                <Link href="/auth/masuk" className="hide-mobile" style={{ padding:'7px 14px', borderRadius:9, border:'1px solid rgba(255,255,255,0.25)', color:'rgba(255,255,255,0.85)', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                  Masuk
+                </Link>
+              )}
+
+              {/* Mobile menu toggle */}
+              <button onClick={() => setMobileMenuOpen(o => !o)} className="show-mobile"
+                style={{ background:'none', border:'none', color:'white', fontSize:20, cursor:'pointer', padding:'4px', lineHeight:1 }}>
+                {mobileMenuOpen ? '✕' : '☰'}
+              </button>
+            </div>
           </div>
         </div>
-      </header>
 
-      {/* Category bar - desktop */}
-      <div className="nav-cat">
-        <div className="nav-cat-inner">
-          {[
-            { name:'Beranda', href:'/' },
-            { name:'Berita', href:'/berita' },
-            { name:'Opini', href:'/opini' },
-            { name:'Hukum Pidana', href:'/kategori/hukum-pidana' },
-            { name:'Hukum Perdata', href:'/kategori/hukum-perdata' },
-            { name:'HAM', href:'/kategori/ham' },
-            { name:'Konstitusi', href:'/kategori/konstitusi' },
-            { name:'Akademik', href:'/kategori/akademik' },
-            { name:'Tentang Kami', href:'/tentang' },
-          ].map(l => (
-            <Link key={l.href} href={l.href} className={pathname === l.href ? 'active' : ''}>{l.name}</Link>
-          ))}
-        </div>
-      </div>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div style={{ background:'#0d2347', borderTop:'1px solid rgba(255,255,255,0.1)', padding:'12px 16px 16px' }}>
+            {/* Mobile Search */}
+            <form onSubmit={handleSearch} style={{ marginBottom:12 }}>
+              <div style={{ position:'relative' }}>
+                <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,0.4)', fontSize:13 }}>🔍</span>
+                <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Cari berita, opini..."
+                  style={{ width:'100%', padding:'9px 12px 9px 32px', borderRadius:9, background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', color:'white', fontSize:13, outline:'none', boxSizing:'border-box' }} />
+              </div>
+            </form>
 
-      {/* Mobile menu */}
-      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
-        <div className="mobile-search">
-          <form onSubmit={handleSearch} style={{ display:'flex', gap:8 }}>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari berita..." style={{ flex:1, padding:'9px 14px', borderRadius:9, border:'1.5px solid #E9ECEF', fontSize:14, outline:'none' }} />
-            <button type="submit" style={{ padding:'9px 16px', borderRadius:9, background:'#1B3A6B', color:'white', border:'none', fontSize:13, fontWeight:600, cursor:'pointer' }}>Cari</button>
-          </form>
-        </div>
-        {[
-          { name:'🏠 Beranda', href:'/' },
-          { name:'📰 Berita', href:'/berita' },
-          { name:'📝 Opini', href:'/opini' },
-          { name:'⚖️ Hukum Pidana', href:'/kategori/hukum-pidana' },
-          { name:'🤝 HAM', href:'/kategori/ham' },
-          { name:'🎓 Akademik', href:'/kategori/akademik' },
-          { name:'ℹ️ Tentang Kami', href:'/tentang' },
-        ].map(l => (
-          <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)}
-            style={{ color: pathname === l.href ? '#1B3A6B' : '#343A40', fontWeight: pathname === l.href ? 700 : 400 }}>
-            {l.name}
-          </Link>
-        ))}
-        {user ? (
-          <>
-            <Link href="/tulis" onClick={() => setMenuOpen(false)} style={{ color:'#1B3A6B', fontWeight:700 }}>✍️ Tulis Berita/Opini</Link>
-            <Link href="/dashboard" onClick={() => setMenuOpen(false)}>👤 Dashboard Saya</Link>
-            {(profile?.role === 'admin' || profile?.role === 'editor') && (
-              <Link href="/admin" onClick={() => setMenuOpen(false)}>🛡️ Admin Panel</Link>
+            {navLinks.map(l => (
+              <Link key={l.href} href={l.href} onClick={() => setMobileMenuOpen(false)}
+                style={{ display:'block', color:'rgba(255,255,255,0.85)', fontSize:14, fontWeight:500, padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+                {l.label}
+              </Link>
+            ))}
+
+            {/* Mobile Kategori */}
+            <div style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ color:'rgba(255,255,255,0.5)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.1em', marginBottom:8 }}>Kategori</div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {categories.map(c => (
+                  <Link key={c.slug} href={`/kategori/${c.slug}`} onClick={() => setMobileMenuOpen(false)}
+                    style={{ padding:'5px 12px', borderRadius:20, fontSize:12, fontWeight:600, background:`rgba(255,255,255,0.1)`, color:'white', border:'1px solid rgba(255,255,255,0.15)' }}>
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <Link href="/tentang" onClick={() => setMobileMenuOpen(false)}
+              style={{ display:'block', color:'rgba(255,255,255,0.85)', fontSize:14, fontWeight:500, padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+              Tentang Kami
+            </Link>
+
+            {!user && (
+              <Link href="/auth/masuk" onClick={() => setMobileMenuOpen(false)}
+                style={{ display:'block', marginTop:12, padding:'10px', textAlign:'center', borderRadius:9, border:'1px solid rgba(255,255,255,0.25)', color:'white', fontSize:14, fontWeight:500 }}>
+                Masuk
+              </Link>
             )}
-            <button onClick={handleSignOut} style={{ color:'#EF4444', borderTop:'1px solid #F8F9FA' }}>🚪 Keluar</button>
-          </>
-        ) : (
-          <>
-            <Link href="/auth/masuk" onClick={() => setMenuOpen(false)} style={{ color:'#1B3A6B', fontWeight:600 }}>🔑 Masuk</Link>
-            <Link href="/auth/daftar" onClick={() => setMenuOpen(false)} style={{ color:'#1B3A6B', fontWeight:700 }}>📝 Daftar Sekarang</Link>
-          </>
+          </div>
         )}
-      </div>
+      </nav>
     </>
   )
 }

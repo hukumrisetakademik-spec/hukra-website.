@@ -1,9 +1,11 @@
 export const metadata = { title: 'Tentang Kami — HUKRA' }
+export const viewport = { width: 'device-width', initialScale: 1 }
 
 const team = [
   { name: 'Ahmidi', role: 'Ketua Tim', initial: 'A', color: '#1B3A6B', textColor: '#C9A84C' },
   { name: 'M. Rahman', role: 'Reviewer', initial: 'R', color: '#EFF4FF', textColor: '#1B3A6B' },
   { name: 'M. Ladit', role: 'Editor', initial: 'L', color: '#EFF4FF', textColor: '#1B3A6B' },
+  { name: "Muhammad Syar'i", role: 'Editor', initial: 'MS', color: '#EFF4FF', textColor: '#1B3A6B' },
   { name: 'Anharudin Ali Fajri', role: 'Divisi Media Publikasi', initial: 'AF', color: '#EFF4FF', textColor: '#1B3A6B' },
 ]
 
@@ -30,7 +32,7 @@ export default function TentangPage() {
 
       {/* Hero */}
       <div className="tentang-hero">
-        <img src="/logo-hukra.jpg" alt="HUKRA" style={{ width:80, height:80, borderRadius:20, objectFit:'cover', border:'3px solid #C9A84C', marginBottom:16, display:'block', margin:'0 auto 16px' }} />
+        <img src="/icon.png" alt="HUKRA" style={{ width:80, height:80, borderRadius:20, objectFit:'cover', border:'3px solid #C9A84C', display:'block', margin:'0 auto 16px' }} />
         <h1 style={{ fontFamily:'Playfair Display,serif', color:'white', fontSize:'clamp(24px,5vw,36px)', fontWeight:700, marginBottom:8 }}>Tentang HUKRA</h1>
         <p style={{ color:'#C9A84C', fontSize:12, letterSpacing:3, fontWeight:600, marginBottom:16 }}>HUKUM DAN RISET AKADEMIKA</p>
         <p style={{ color:'rgba(255,255,255,0.75)', fontSize:16, maxWidth:600, margin:'0 auto', lineHeight:1.7 }}>
@@ -46,7 +48,7 @@ export default function TentangPage() {
         {/* Stats */}
         <div className="stat-grid">
           {[
-            { emoji:'👥', value:'4', label:'Anggota Tim' },
+            { emoji:'👥', value:'5', label:'Anggota Tim' },
             { emoji:'⚖️', value:'2026', label:'Tahun Berdiri' },
             { emoji:'🎓', label:'Fakultas Syariah', value:'UIN' },
           ].map(s => (
@@ -99,7 +101,7 @@ export default function TentangPage() {
 
         {/* CTA */}
         <div style={{ background:'linear-gradient(135deg,#1B3A6B,#0d2347)', borderRadius:16, padding:32, textAlign:'center', color:'white' }}>
-          <img src="/logo-hukra.jpg" alt="HUKRA" style={{ width:60, height:60, borderRadius:14, objectFit:'cover', border:'2px solid #C9A84C', marginBottom:16, display:'block', margin:'0 auto 16px' }} />
+          <img src="/icon.png" alt="HUKRA" style={{ width:60, height:60, borderRadius:14, objectFit:'cover', border:'2px solid #C9A84C', display:'block', margin:'0 auto 16px' }} />
           <h3 style={{ fontFamily:'Playfair Display,serif', fontSize:22, fontWeight:700, marginBottom:10 }}>Bergabung dengan HUKRA</h3>
           <p style={{ color:'rgba(255,255,255,0.7)', lineHeight:1.7, marginBottom:24, maxWidth:400, margin:'0 auto 24px', fontSize:15 }}>
             Jadilah bagian dari komunitas akademik dan kontribusikan pemikiranmu untuk kemajuan hukum Indonesia!
